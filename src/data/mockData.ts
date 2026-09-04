@@ -1,4 +1,4 @@
-import { Community, User, Post, Course, Challenge, CommunityEvent, ResourceItem, QAThread, Coupon, ReportItem, NotificationItem } from '../types';
+import { Community, User, Post, Course, Challenge, CommunityEvent, ResourceItem, Coupon, ReportItem, NotificationItem } from '../types';
 
 export const CURRENT_USER: User = {
   id: 'usr_me',
@@ -212,6 +212,36 @@ Source code và Figma Tokens đã được upload trong tab **Resources** cho an
       }
     ],
     createdAt: '1 ngày trước',
+  },
+  {
+    id: 'post_qa1',
+    communityId: 'comm_ai_builders',
+    author: MOCK_USERS[3], // Minh Quang
+    title: 'Làm thế nào để lưu trữ trạng thái hội thoại của Agent qua nhiều phiên đăng nhập?',
+    content: `Mình đang dùng \`LangGraph InMemorySaver\` nhưng mỗi lần restart server là mất session. Có giải pháp nào đồng bộ mượt mà với \`Postgres\` / \`Redis\` không?`,
+    category: 'Hỏi đáp Kỹ thuật',
+    tags: ['Hỏi đáp', 'LangGraph', 'Memory'],
+    upvotesCount: 14,
+    upvotedByUserIds: ['usr_me', 'usr_member_2'],
+    commentsCount: 1,
+    isQuestion: true,
+    isSolved: true,
+    createdAt: '1 ngày trước',
+  },
+  {
+    id: 'post_qa2',
+    communityId: 'comm_ai_builders',
+    author: MOCK_USERS[1], // Alex Vance
+    title: 'Streaming response từ DeepSeek R1 bị trễ (buffer) khi qua Cloudflare CDN?',
+    content: `Khi mình gọi API streaming từ model \`DeepSeek-R1\` qua Cloudflare reverse proxy thì token không ra từng chữ mà bị dồn 1 cục rồi mới bắn về frontend. Ai từng gặp lỗi này chưa?`,
+    category: 'Hỏi đáp Kỹ thuật',
+    tags: ['Hỏi đáp', 'DeepSeek', 'Streaming'],
+    upvotesCount: 8,
+    upvotedByUserIds: ['usr_me'],
+    commentsCount: 1,
+    isQuestion: true,
+    isSolved: false,
+    createdAt: '3 giờ trước',
   }
 ];
 
@@ -257,6 +287,29 @@ export const MOCK_COMMENTS: Record<string, import('../types').Comment[]> = {
       upvotesCount: 12,
       upvotedByUserIds: ['usr_member_1', 'usr_member_2'],
       createdAt: '3 giờ trước'
+    }
+  ],
+  post_qa1: [
+    {
+      id: 'cmt_qa1_ans1',
+      postId: 'post_qa1',
+      author: CURRENT_USER,
+      content: 'Bạn nên dùng PostgresSaver hoặc RedisSaver từ gói langgraph-checkpoint. Nó tự động serialize checkpoint theo thread_id của user vào DB một cách bền vững.',
+      upvotesCount: 9,
+      upvotedByUserIds: ['usr_member_1'],
+      createdAt: '1 ngày trước',
+      isSolution: true
+    }
+  ],
+  post_qa2: [
+    {
+      id: 'cmt_qa2_ans1',
+      postId: 'post_qa2',
+      author: CURRENT_USER,
+      content: 'Bạn cần tắt Response Buffering trên Cloudflare bằng cách thêm header X-Accel-Buffering: no ở backend response, hoặc cấu hình HTTP/2 SSE bypass caching rule nhé.',
+      upvotesCount: 4,
+      upvotedByUserIds: [],
+      createdAt: '1 giờ trước'
     }
   ]
 };
@@ -514,57 +567,6 @@ export const MOCK_RESOURCES: ResourceItem[] = [
     downloadsCount: 489,
     category: 'Design Template',
     createdAt: '2 tuần trước'
-  }
-];
-
-export const MOCK_QA_THREADS: QAThread[] = [
-  {
-    id: 'qa_1',
-    communityId: 'comm_ai_builders',
-    author: MOCK_USERS[3],
-    question: 'Làm thế nào để lưu trữ trạng thái hội thoại của Agent qua nhiều phiên đăng nhập?',
-    details: 'Mình đang dùng `LangGraph InMemorySaver` nhưng mỗi lần restart server là mất session. Có giải pháp nào đồng bộ mượt mà với `Postgres` / `Redis` không?',
-    isSolved: true,
-    answersCount: 1,
-    upvotesCount: 14,
-    upvotedByUserIds: ['usr_me', 'usr_member_2'],
-    category: 'State & Memory',
-    createdAt: '1 ngày trước',
-    answers: [
-      {
-        id: 'ans_1',
-        author: CURRENT_USER,
-        content: 'Bạn nên dùng `PostgresSaver` hoặc `RedisSaver` từ `@langchain/langgraph-checkpoint`. Nó tự động serialize checkpoint theo `thread_id` của user vào DB một cách bền vững.',
-        isAccepted: true,
-        upvotesCount: 9,
-        upvotedByUserIds: ['usr_member_1'],
-        createdAt: '1 ngày trước'
-      }
-    ]
-  },
-  {
-    id: 'qa_2',
-    communityId: 'comm_ai_builders',
-    author: MOCK_USERS[1],
-    question: 'Streaming response từ DeepSeek R1 bị trễ (buffer) khi qua Cloudflare CDN?',
-    details: 'Khi mình gọi API streaming từ model `DeepSeek-R1` qua Cloudflare reverse proxy thì token không ra từng chữ mà bị dồn 1 cục rồi mới bắn về frontend. Ai từng gặp lỗi này chưa?',
-    isSolved: false,
-    answersCount: 1,
-    upvotesCount: 8,
-    upvotedByUserIds: ['usr_me'],
-    category: 'Infra & Deploy',
-    createdAt: '3 giờ trước',
-    answers: [
-      {
-        id: 'ans_2',
-        author: MOCK_USERS[0],
-        content: 'Bạn cần tắt **Response Buffering** trên Cloudflare bằng cách thêm header `X-Accel-Buffering: no` ở backend response, hoặc cấu hình HTTP/2 SSE bypass caching rule nhé.',
-        isAccepted: false,
-        upvotesCount: 4,
-        upvotedByUserIds: [],
-        createdAt: '1 giờ trước'
-      }
-    ]
   }
 ];
 

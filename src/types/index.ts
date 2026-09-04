@@ -57,6 +57,8 @@ export interface Post {
   commentsCount: number;
   isPinned?: boolean;
   isAnnouncement?: boolean;
+  isQuestion?: boolean;
+  isSolved?: boolean;
   poll?: {
     question: string;
     options: PollOption[];
@@ -82,6 +84,7 @@ export interface Comment {
   parentId?: string;
   createdAt: string;
   replies?: Comment[];
+  isSolution?: boolean;
 }
 
 export interface Lesson {
@@ -175,31 +178,6 @@ export interface ResourceItem {
   downloadsCount: number;
   category: string;
   createdAt: string;
-}
-
-export interface QAAnswer {
-  id: string;
-  author: User;
-  content: string;
-  isAccepted: boolean;
-  upvotesCount: number;
-  upvotedByUserIds: string[];
-  createdAt: string;
-}
-
-export interface QAThread {
-  id: string;
-  communityId: string;
-  author: User;
-  question: string;
-  details: string;
-  isSolved: boolean;
-  answersCount: number;
-  upvotesCount: number;
-  upvotedByUserIds: string[];
-  answers: QAAnswer[];
-  createdAt: string;
-  category: string;
 }
 
 export interface Coupon {

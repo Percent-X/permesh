@@ -6,7 +6,6 @@ import {
   Trophy,
   Calendar,
   FolderDown,
-  HelpCircle,
   Users,
   Tag,
   BarChart3,
@@ -16,7 +15,11 @@ import {
   Plus,
   Compass,
   Flame,
-  Sparkles
+  Sparkles,
+  Globe,
+  FileText,
+  Star,
+  Inbox
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -61,7 +64,6 @@ export const Sidebar: React.FC = () => {
         { id: 'challenges', label: 'Thử thách 30 ngày', icon: Trophy, badge: 'HOT' },
         { id: 'events', label: 'Lịch & sự kiện (Calendar)', icon: Calendar },
         { id: 'resources', label: 'Thư viện tài nguyên', icon: FolderDown },
-        { id: 'qa', label: 'Hỏi đáp kỹ thuật (Q&A)', icon: HelpCircle },
         { id: 'members', label: 'Thành viên & Xếp hạng', icon: Users },
       ]
     },
@@ -72,6 +74,15 @@ export const Sidebar: React.FC = () => {
         { id: 'coupons', label: 'Quản lý Coupon', icon: Tag, badge: 'NEW' },
       ]
     }] : []),
+    {
+      title: 'Nội quy & Hỗ trợ',
+      items: [
+        { id: 'guide', label: 'Hướng dẫn sử dụng', icon: Globe },
+        { id: 'rules', label: 'Nội quy', icon: FileText },
+        { id: 'reviews', label: 'Đánh giá', icon: Star },
+        { id: 'feedback', label: 'Góp ý & Khiếu nại', icon: Inbox },
+      ]
+    },
     ...(isAdmin ? [{
       title: 'Quản Trị Hệ Thống',
       items: [

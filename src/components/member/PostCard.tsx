@@ -10,6 +10,8 @@ import {
   Share2,
   Check,
   CheckCircle,
+  CheckCircle2,
+  HelpCircle,
   Sparkles,
   Send,
   CornerDownRight
@@ -18,8 +20,11 @@ import {
 export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const {
     currentUser,
+    activeRole,
     toggleUpvotePost,
     toggleBookmarkPost,
+    toggleSolvePost,
+    markCommentAsSolution,
     votePoll,
     comments,
     addComment,
@@ -45,6 +50,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const hasLiked = post.upvotedByUserIds.includes(currentUser.id);
   const likesCount = post.upvotesCount;
   const isBookmarked = currentUser.bookmarkedPostIds.includes(post.id);
+  const canManageSolution = post.isQuestion && (activeRole === 'ADMIN' || post.author.id === currentUser.id);
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +85,31 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
           <span className="badge-linear-zinc">
             {post.category}
           </span>
+          {post.isQuestion && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-300/70 dark:border-sky-800/60">
+              <HelpCircle className="w-3 h-3" />
+              <span>Câu hỏi</span>
+            </span>
+          )}
+          {post.isQuestion && (post.isSolved ? (
+            <button
+              onClick={canManageSolution ? () => toggleSolvePost(post.id) : undefined}
+              title={canManageSolution ? 'Bấm để mở lại câu hỏi' : 'Câu hỏi đã có lời giải'}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition-all bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-800/60 ${canManageSolution ? 'cursor-pointer hover:opacity-85 active:scale-95' : 'cursor-default'}`}
+            >
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Đã giải quyết</span>
+            </button>
+          ) : (
+            <button
+              onClick={canManageSolution ? () => toggleSolvePost(post.id) : undefined}
+              title={canManageSolution ? 'Bấm để đánh dấu đã giải quyết' : 'Đang chờ lời giải'}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-all bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300/80 dark:border-amber-800/60 ${canManageSolution ? 'cursor-pointer hover:opacity-85 active:scale-95' : 'cursor-default'}`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              <span>Chờ lời giải</span>
+            </button>
+          ))}
           {post.tags.map(tag => (
             <span key={tag} className="text-[11px] text-zinc-500 dark:text-zinc-400 hover:text-purple-600 dark:hover:text-purple-300 cursor-pointer">
               #{tag}
@@ -120,6 +151,15 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
           {post.title}
         </h2>
         <MarkdownRenderer content={post.content} />
+        {post.isQuestion && post.isSolved && (
+          <button
+            onClick={() => setShowComments(true)}
+            className="mt-3 w-full flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:opacity-90 transition-all text-left"
+          >
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>Đã có lời giải được chấp nhận — bấm để xem trong bình luận.</span>
+          </button>
+        )}
 
         {/* Attachments Preview */}
         {post.attachments && post.attachments.length > 0 && (
@@ -277,7 +317,11 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
               const cmtHasLiked = cmt.upvotedByUserIds.includes(currentUser.id);
               return (
                 <div key={cmt.id} className="space-y-2 text-xs">
-                  <div className="flex items-start gap-2.5 bg-white dark:bg-white/[0.02] p-3 rounded-xl border border-zinc-200 dark:border-white/[0.04]">
+                  <div className={`flex items-start gap-2.5 bg-white dark:bg-white/[0.02] p-3 rounded-xl border ${
+                    cmt.isSolution
+                      ? 'border-emerald-400/70 dark:border-emerald-700/60 ring-1 ring-emerald-500/20'
+                      : 'border-zinc-200 dark:border-white/[0.04]'
+                  }`}>
                     <img
                       src={cmt.author.avatar}
                       alt={cmt.author.name}
@@ -286,8 +330,13 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-zinc-900 dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-300 cursor-pointer text-xs" onClick={() => setInspectedUser(cmt.author)}>
+                        <span className="font-bold text-zinc-900 dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-300 cursor-pointer text-xs flex items-center gap-1.5" onClick={() => setInspectedUser(cmt.author)}>
                           {cmt.author.name}
+                          {cmt.isSolution && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/70 dark:border-emerald-800/50 px-1.5 py-0.2 rounded-full">
+                              <CheckCircle2 className="w-3 h-3" /> Lời giải
+                            </span>
+                          )}
                         </span>
                         <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">{cmt.createdAt}</span>
                       </div>
@@ -316,6 +365,21 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
                           <CornerDownRight className="w-3 h-3" />
                           Trả lời
                         </button>
+
+                        {canManageSolution && (
+                          <button
+                            onClick={() => markCommentAsSolution(post.id, cmt.id)}
+                            title={cmt.isSolution ? 'Bỏ chọn lời giải' : 'Chọn làm lời giải'}
+                            className={`flex items-center gap-1 font-semibold transition-colors ${
+                              cmt.isSolution
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                            }`}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {cmt.isSolution ? 'Đã là lời giải' : 'Chọn làm lời giải'}
+                          </button>
+                        )}
                       </div>
 
                       {/* Reply Box */}

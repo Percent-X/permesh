@@ -10,7 +10,7 @@ import { ClassroomView } from '../member/ClassroomView';
 import { ChallengesView } from '../member/ChallengesView';
 import { EventsView } from '../member/EventsView';
 import { ResourcesView } from '../member/ResourcesView';
-import { QAView } from '../member/QAView';
+import { SupportView } from '../member/SupportView';
 import { LeaderboardView } from '../member/LeaderboardView';
 import { ProfileView } from '../member/ProfileView';
 import { CreatorDashboard } from '../creator/CreatorDashboard';
@@ -91,7 +91,13 @@ export const AppShell: React.FC = () => {
                   <ResourcesView onOpenResourceEditor={() => setIsResourceModalOpen(true)} />
                 )}
 
-                {activeTab === 'qa' && <QAView />}
+                {activeTab === 'guide' && <SupportView tab="guide" />}
+
+                {activeTab === 'rules' && <SupportView tab="rules" />}
+
+                {activeTab === 'reviews' && <SupportView tab="reviews" />}
+
+                {activeTab === 'feedback' && <SupportView tab="feedback" />}
 
                 {activeTab === 'members' && <LeaderboardView />}
 

@@ -6,6 +6,7 @@ import {
   Send,
   Filter,
   MessageSquarePlus,
+  HelpCircle,
   X
 } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export const FeedView: React.FC = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
   const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [isQuestion, setIsQuestion] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('Chung');
@@ -31,10 +33,11 @@ export const FeedView: React.FC = () => {
 
   const communityPosts = posts.filter(p => p.communityId === activeCommunity.id);
 
-  const categories = ['Tất cả', ...(activeCommunity.categories || ['Chung'])];
+  const categories = ['Tất cả', 'Câu hỏi', ...(activeCommunity.categories || ['Chung'])];
 
   const filteredPosts = communityPosts.filter(p => {
     if (selectedCategory === 'Tất cả') return true;
+    if (selectedCategory === 'Câu hỏi') return !!p.isQuestion;
     return p.category === selectedCategory;
   });
 
@@ -58,7 +61,8 @@ export const FeedView: React.FC = () => {
       content,
       category,
       tags,
-      pollOptions: showPollInput ? pollOptions.filter(o => o.trim()) : undefined
+      pollOptions: !isQuestion && showPollInput ? pollOptions.filter(o => o.trim()) : undefined,
+      isQuestion
     });
 
     // Reset
@@ -67,6 +71,7 @@ export const FeedView: React.FC = () => {
     setTags(['Discussion']);
     setShowPollInput(false);
     setPollOptions(['', '']);
+    setIsQuestion(false);
     setIsCreatingPost(false);
   };
 
@@ -107,7 +112,7 @@ export const FeedView: React.FC = () => {
 
             <input
               type="text"
-              placeholder="Tiêu đề bài viết..."
+              placeholder={isQuestion ? 'Câu hỏi ngắn gọn bạn đang gặp phải? (VD: Lỗi CORS khi gọi Claude API từ Next.js)' : 'Tiêu đề bài viết...'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-transparent text-sm font-bold text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none border-b border-zinc-200 dark:border-white/[0.06] pb-2"
@@ -115,7 +120,7 @@ export const FeedView: React.FC = () => {
             />
 
             <textarea
-              placeholder="Nội dung chi tiết (hỗ trợ markdown, bullet points, links)..."
+              placeholder={isQuestion ? 'Mô tả chi tiết: code, thông báo lỗi và những gì bạn đã thử...' : 'Nội dung chi tiết (hỗ trợ markdown, bullet points, links)...'}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={4}
@@ -123,7 +128,7 @@ export const FeedView: React.FC = () => {
             />
 
             {/* Poll Option Inputs */}
-            {showPollInput && (
+            {!isQuestion && showPollInput && (
               <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-500/30 space-y-2">
                 <div className="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
                   <BarChart2 className="w-3.5 h-3.5" /> Thêm bình chọn (Poll)
@@ -199,6 +204,23 @@ export const FeedView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => {
+                    setIsQuestion(!isQuestion);
+                    if (!isQuestion) setShowPollInput(false);
+                  }}
+                  className={`p-2 rounded-lg text-xs flex items-center gap-1 transition-all ${
+                    isQuestion
+                      ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-500'
+                      : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5'
+                  }`}
+                  title="Đăng dưới dạng câu hỏi cần giải đáp"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Câu hỏi</span>
+                </button>
+                {!isQuestion && (
+                <button
+                  type="button"
                   onClick={() => setShowPollInput(!showPollInput)}
                   className={`p-2 rounded-lg text-xs flex items-center gap-1 transition-all ${
                     showPollInput
@@ -210,6 +232,7 @@ export const FeedView: React.FC = () => {
                   <BarChart2 className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Poll</span>
                 </button>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -226,7 +249,7 @@ export const FeedView: React.FC = () => {
                   className="h-7 px-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-md text-[11px] font-semibold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
                 >
                   <Send className="w-3 h-3" />
-                  <span>Đăng bài</span>
+                  <span>{isQuestion ? 'Đăng câu hỏi (+20 XP)' : 'Đăng bài'}</span>
                 </button>
               </div>
             </div>
@@ -259,7 +282,9 @@ export const FeedView: React.FC = () => {
       <div className="space-y-4">
         {filteredPosts.length === 0 ? (
           <div className="v-card p-12 text-center text-zinc-500 text-xs">
-            Chưa có bài viết nào trong danh mục này. Hãy là người đầu tiên chia sẻ!
+            {selectedCategory === 'Câu hỏi'
+              ? 'Chưa có câu hỏi nào. Hãy là người đầu tiên đặt câu hỏi!'
+              : 'Chưa có bài viết nào trong danh mục này. Hãy là người đầu tiên chia sẻ!'}
           </div>
         ) : (
           filteredPosts.map((post) => (

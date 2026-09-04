@@ -10,7 +10,6 @@ import {
   Challenge,
   CommunityEvent,
   ResourceItem,
-  QAThread,
   Coupon,
   ReportItem,
   NotificationItem,
@@ -26,7 +25,6 @@ import {
   MOCK_CHALLENGES,
   MOCK_EVENTS,
   MOCK_RESOURCES,
-  MOCK_QA_THREADS,
   MOCK_COUPONS,
   MOCK_REPORTS,
   MOCK_NOTIFICATIONS,
@@ -61,7 +59,6 @@ interface AppContextType {
   challenges: Challenge[];
   events: CommunityEvent[];
   resources: ResourceItem[];
-  qaThreads: QAThread[];
   coupons: Coupon[];
   reports: ReportItem[];
   notifications: NotificationItem[];
@@ -76,10 +73,12 @@ interface AppContextType {
   setIsCreateCommunityOpen: (open: boolean) => void;
 
   // Actions
-  createPost: (post: { title: string; content: string; category: string; tags: string[]; pollOptions?: string[] }) => void;
+  createPost: (post: { title: string; content: string; category: string; tags: string[]; pollOptions?: string[]; isQuestion?: boolean }) => void;
   toggleUpvotePost: (postId: string) => void;
   toggleDownvotePost: (postId: string) => void;
   toggleBookmarkPost: (postId: string) => void;
+  toggleSolvePost: (postId: string) => void;
+  markCommentAsSolution: (postId: string, commentId: string) => void;
   votePoll: (postId: string, optionId: string) => void;
   addComment: (postId: string, content: string, parentId?: string) => void;
   toggleUpvoteComment: (postId: string, commentId: string) => void;
@@ -95,10 +94,6 @@ interface AppContextType {
   createEvent: (data: Partial<CommunityEvent>) => void;
   createResource: (data: Partial<ResourceItem>) => void;
   createCoupon: (data: Partial<Coupon>) => void;
-  createQAQuestion: (question: string, details: string, category: string) => void;
-  addQAAnswer: (threadId: string, content: string) => void;
-  toggleUpvoteQA: (threadId: string) => void;
-  toggleSolveQA: (threadId: string) => void;
   resolveReport: (reportId: string, action: 'RESOLVE' | 'DISMISS') => void;
   toggleBanUser: (userId: string) => void;
   approveCommunity: (communityId: string) => void;
@@ -189,11 +184,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : MOCK_RESOURCES;
   });
 
-  const [qaThreads, setQaThreads] = useState<QAThread[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_qa`);
-    return saved ? JSON.parse(saved) : MOCK_QA_THREADS;
-  });
-
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_coupons`);
     return saved ? JSON.parse(saved) : MOCK_COUPONS;
@@ -238,12 +228,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(`${STORAGE_KEY}_challenges`, JSON.stringify(challenges));
     localStorage.setItem(`${STORAGE_KEY}_events`, JSON.stringify(events));
     localStorage.setItem(`${STORAGE_KEY}_resources`, JSON.stringify(resources));
-    localStorage.setItem(`${STORAGE_KEY}_qa`, JSON.stringify(qaThreads));
     localStorage.setItem(`${STORAGE_KEY}_coupons`, JSON.stringify(coupons));
     localStorage.setItem(`${STORAGE_KEY}_reports`, JSON.stringify(reports));
     localStorage.setItem(`${STORAGE_KEY}_notifications`, JSON.stringify(notifications));
     localStorage.setItem(`${STORAGE_KEY}_heatmap`, JSON.stringify(activityDays));
-  }, [currentUser, users, communities, posts, comments, courses, challenges, events, resources, qaThreads, coupons, reports, notifications, activityDays]);
+  }, [currentUser, users, communities, posts, comments, courses, challenges, events, resources, coupons, reports, notifications, activityDays]);
 
   const activeCommunity = communities.find(c => c.id === activeCommunityId) || communities[0];
 
@@ -276,18 +265,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Actions
-  const createPost = (data: { title: string; content: string; category: string; tags: string[]; pollOptions?: string[] }) => {
+  const createPost = (data: { title: string; content: string; category: string; tags: string[]; pollOptions?: string[]; isQuestion?: boolean }) => {
     const newPost: Post = {
       id: `post_${Date.now()}`,
       communityId: activeCommunityId,
       author: currentUser,
       title: data.title,
       content: data.content,
-      category: data.category || 'Chung',
-      tags: data.tags.length > 0 ? data.tags : ['Discussions'],
+      category: data.isQuestion ? (data.category && data.category !== 'Chung' ? data.category : 'Hỏi đáp Kỹ thuật') : (data.category || 'Chung'),
+      tags: data.tags.length > 0 ? data.tags : (data.isQuestion ? ['Hỏi đáp'] : ['Discussions']),
       upvotesCount: 1,
       upvotedByUserIds: [currentUser.id],
       commentsCount: 0,
+      isQuestion: !!data.isQuestion,
+      isSolved: false,
       createdAt: 'Vừa xong',
       poll: data.pollOptions && data.pollOptions.filter(o => o.trim()).length > 0 ? {
         question: data.title,
@@ -789,66 +780,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCoupons(prev => [newCoupon, ...prev]);
   };
 
-  const createQAQuestion = (question: string, details: string, category: string) => {
-    const newThread: QAThread = {
-      id: `qa_${Date.now()}`,
-      communityId: activeCommunityId,
-      author: currentUser,
-      question,
-      details,
-      isSolved: false,
-      answersCount: 0,
-      upvotesCount: 1,
-      upvotedByUserIds: [currentUser.id],
-      answers: [],
-      createdAt: 'Vừa xong',
-      category: category || 'Chung'
-    };
-    setQaThreads(prev => [newThread, ...prev]);
-    recordActivity(20);
+  const toggleSolvePost = (postId: string) => {
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, isSolved: !p.isSolved } : p));
   };
 
-  const addQAAnswer = (threadId: string, content: string) => {
-    const newAnswer: import('../types').QAAnswer = {
-      id: `ans_${Date.now()}`,
-      author: currentUser,
-      content,
-      isAccepted: false,
-      upvotesCount: 0,
-      upvotedByUserIds: [],
-      createdAt: 'Vừa xong'
-    };
-
-    setQaThreads(prev => prev.map(t => {
-      if (t.id === threadId) {
-        return {
-          ...t,
-          answersCount: t.answersCount + 1,
-          answers: [...t.answers, newAnswer]
-        };
-      }
-      return t;
+  const markCommentAsSolution = (postId: string, commentId: string) => {
+    setComments(prev => {
+      const list = prev[postId] || [];
+      const target = list.find(c => c.id === commentId);
+      const willMark = target && !target.isSolution;
+      return {
+        ...prev,
+        [postId]: list.map(c => ({ ...c, isSolution: willMark ? c.id === commentId : false }))
+      };
+    });
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      const list = comments[postId] || [];
+      const target = list.find(c => c.id === commentId);
+      const willMark = target && !target.isSolution;
+      return { ...p, isSolved: !!willMark };
     }));
-    recordActivity(25);
-  };
-
-  const toggleUpvoteQA = (threadId: string) => {
-    setQaThreads(prev => prev.map(t => {
-      if (t.id === threadId) {
-        const hasUpvoted = t.upvotedByUserIds.includes(currentUser.id);
-        return {
-          ...t,
-          upvotesCount: hasUpvoted ? t.upvotesCount - 1 : t.upvotesCount + 1,
-          upvotedByUserIds: hasUpvoted ? t.upvotedByUserIds.filter(id => id !== currentUser.id) : [...t.upvotedByUserIds, currentUser.id]
-        };
-      }
-      return t;
-    }));
-    recordActivity(5);
-  };
-
-  const toggleSolveQA = (threadId: string) => {
-    setQaThreads(prev => prev.map(t => t.id === threadId ? { ...t, isSolved: !t.isSolved } : t));
   };
 
   const resolveReport = (reportId: string, action: 'RESOLVE' | 'DISMISS') => {
@@ -949,7 +901,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         challenges,
         events,
         resources,
-        qaThreads,
         coupons,
         reports,
         notifications,
@@ -964,6 +915,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleUpvotePost,
         toggleDownvotePost,
         toggleBookmarkPost,
+        toggleSolvePost,
+        markCommentAsSolution,
         votePoll,
         addComment,
         toggleUpvoteComment,
@@ -979,10 +932,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createEvent,
         createResource,
         createCoupon,
-        createQAQuestion,
-        addQAAnswer,
-        toggleUpvoteQA,
-        toggleSolveQA,
         resolveReport,
         toggleBanUser,
         approveCommunity,
